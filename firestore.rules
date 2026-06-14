@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && getUserData().role == 'admin';
+    }
+
+    function isInstructor() {
+      return isAuthenticated() && getUserData().role == 'instructor';
+    }
+
+    function isAdminOrInstructor() {
+      return isAdmin() || isInstructor();
+    }
+
+    function instructorOwnsGroup(groupId) {
+      return isInstructor() && groupId in getUserData().assignedGroups;
+    }
+
+    function groupBelongsToInstructor(groupId) {
+      let group = get(/databases/$(database)/documents/groups/$(groupId)).data;
+      return group.instructorId == request.auth.uid;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAdmin();
+      allow update: if isAdmin() || request.auth.uid == userId;
+      allow delete: if isAdmin();
+    }
+
+    // Groups Collection
+    match /groups/{groupId} {
+      allow read: if isAdminOrInstructor();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Students Collection
+    match /students/{studentId} {
+      allow read: if isAdmin() || (isInstructor() && instructorOwnsGroup(resource.data.groupId));
+      allow create: if isAdmin() || (isInstructor() && instructorOwnsGroup(request.resource.data.groupId));
+      allow update: if isAdmin() || (isInstructor() && instructorOwnsGroup(resource.data.groupId));
+      allow delete: if isAdmin();
+    }
+
+    // Sessions Collection
+    match /sessions/{sessionId} {
+      allow read: if isAdmin() || (isInstructor() && instructorOwnsGroup(resource.data.groupId));
+      allow create: if isAdmin() || (isInstructor() && instructorOwnsGroup(request.resource.data.groupId));
+      allow update: if isAdmin() || (isInstructor() && instructorOwnsGroup(resource.data.groupId));
+      allow delete: if isAdmin();
+    }
+
+    // Evaluations Collection
+    match /evaluations/{evaluationId} {
+      allow read: if isAdmin() || (isInstructor() && resource.data.instructorId == request.auth.uid);
+      allow create: if isAdminOrInstructor() && request.resource.data.instructorId == request.auth.uid;
+      allow update: if isAdmin() || (isInstructor() && resource.data.instructorId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+  }
+}
