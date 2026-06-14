@@ -5,7 +5,6 @@
  */
 
 'use strict';
-
 // ══════════════════════════════════════════════════════════════
 //  FIREBASE CONFIGURATION
 //  ⚠️  Replace these values with your actual Firebase project config
