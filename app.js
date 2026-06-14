@@ -3,7 +3,6 @@
  * Full-featured, production-grade SPA logic
  * Firebase Compat SDK v10, Chart.js, SheetJS, html2pdf
  */
-
 'use strict';
 // ══════════════════════════════════════════════════════════════
 //  FIREBASE CONFIGURATION
